@@ -10,30 +10,38 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Conectar a MongoDB
+// Conectar a MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB conectado'))
   .catch(err => console.error('Error MongoDB:', err));
 
-// === APIs ===
+// === RUTAS ===
 
-// POST: Recibir datos del ESP32
+// POST: Recibir datos del ESP32 con MAX30102
 app.post('/api/telemetry', async (req, res) => {
   try {
     const data = req.body;
-    // Convertir timestamp de segundos a Date
+
+    // Convertir timestamp de segundos (del ESP32) a Date
     if (data.timestamp) {
       data.timestamp = new Date(data.timestamp * 1000);
     }
+
     const telemetry = new Telemetry(data);
     await telemetry.save();
-    res.status(201).json({ message: 'Datos guardados', id: telemetry._id });
+
+    console.log(`Datos recibidos → SpO₂: ${data.spo2}% | BPM: ${data.heart_rate}`);
+    res.status(201).json({ 
+      message: 'Datos de MAX30102 guardados', 
+      id: telemetry._id 
+    });
   } catch (err) {
+    console.error('Error guardando datos:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET: Obtener todos los registros
+// GET: Todos los registros (ordenados por fecha)
 app.get('/api/telemetry', async (req, res) => {
   try {
     const data = await Telemetry.find().sort({ timestamp: -1 });
@@ -43,7 +51,7 @@ app.get('/api/telemetry', async (req, res) => {
   }
 });
 
-// GET: Contar registros
+// GET: Contar cuántos registros hay
 app.get('/api/telemetry/count', async (req, res) => {
   try {
     const count = await Telemetry.countDocuments();
@@ -53,8 +61,18 @@ app.get('/api/telemetry/count', async (req, res) => {
   }
 });
 
+// Ruta de prueba
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>ESP32 + MAX30102 Telemetría</h1>
+    <p>Registros guardados: <b>${Telemetry.countDocuments()}</b></p>
+    <p>POST → /api/telemetry</p>
+    <p>GET → /api/telemetry</p>
+  `);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`API corriendo en: http://localhost:${PORT}`);
-  console.log(`POST → http://localhost:${PORT}/api/telemetry`);
+  console.log(`Servidor corriendo en: http://localhost:${PORT}`);
+  console.log(`POST → https://esp32-telemetry.onrender.com/api/telemetry`);
 });
