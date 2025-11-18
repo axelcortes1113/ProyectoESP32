@@ -66,16 +66,6 @@ app.get('/api/telemetry', async (req, res) => {
   }
 });
 
-// GET: Últimos N registros (ej: /api/datos/last/10)
-app.get('/api/telemetry/last/:n?', async (req, res) => {
-  try {
-    const n = parseInt(req.params.n) || 1;
-    const datos = await Dato.find().sort({ timestamp: -1 }).limit(n);
-    res.json(datos);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // GET: Contador total
 app.get('/api/telemetry/count', async (req, res) => {
