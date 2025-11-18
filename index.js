@@ -10,13 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Conectar a MongoDB Atlas
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB conectado'))
-.catch(err => console.error('Error MongoDB:', err));
+// Conectar a MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('MongoDB conectado correctamente'))
+  .catch(err => console.error('Error MongoDB:', err));
 
 // === APIs ===
 
@@ -36,7 +33,7 @@ app.post('/api/telemetry', async (req, res) => {
       return res.status(400).json({ error: 'Formato de timestamp inválido' });
     }
 
-    const nuevoDato = new Dato({
+    const nuevoDato = new Telemetry({
       temp,
       hum,
       timestamp: fecha
@@ -59,7 +56,7 @@ app.post('/api/telemetry', async (req, res) => {
 // GET: Todos los registros (ordenados por fecha descendente)
 app.get('/api/telemetry', async (req, res) => {
   try {
-    const datos = await Dato.find().sort({ timestamp: -1 });
+    const datos = await Telemetry.find().sort({ timestamp: -1 });
     res.json(datos);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -70,7 +67,7 @@ app.get('/api/telemetry', async (req, res) => {
 // GET: Contador total
 app.get('/api/telemetry/count', async (req, res) => {
   try {
-    const count = await Dato.countDocuments();
+    const count = await Telemetry.countDocuments();
     res.json({ total_registros: count });
   } catch (err) {
     res.status(500).json({ error: err.message });

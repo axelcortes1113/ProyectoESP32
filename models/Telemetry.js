@@ -1,6 +1,7 @@
+// models/Datos.js
 const mongoose = require('mongoose');
 
-const datosSchema = new mongoose.Schema({
+const telemetrySchema = new mongoose.Schema({
   temp: {
     type: Number,
     required: true
@@ -17,4 +18,4 @@ const datosSchema = new mongoose.Schema({
   timestamps: true  // crea automáticamente createdAt y updatedAt
 });
 
-module.exports = mongoose.model('Dato', datosSchema);
+module.exports = mongoose.model('Telemetry', telemetrySchema);
