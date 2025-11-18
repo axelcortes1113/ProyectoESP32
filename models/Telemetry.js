@@ -1,13 +1,20 @@
 const mongoose = require('mongoose');
 
-const telemetrySchema = new mongoose.Schema({
-    device_id: String,
-    temperature: Number,
-    humidity: Number,
-    cpu_cores: Number,
-    flash_size_mb: Number,
-    free_heap: Number,
-    timestamp: { type: Date, default: Date.now }
+const datosSchema = new mongoose.Schema({
+  temp: {
+    type: Number,
+    required: true
+  },
+  hum: {
+    type: Number,
+    required: true
+  },
+  timestamp: {
+    type: Date,
+    required: true
+  }
+}, {
+  timestamps: true  // crea automáticamente createdAt y updatedAt
 });
 
-module.exports = mongoose.model('Telemetry', telemetrySchema);
+module.exports = mongoose.model('Dato', datosSchema);
