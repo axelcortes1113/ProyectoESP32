@@ -6,33 +6,37 @@ const Telemetry = require('./models/Telemetry');
 
 const app = express();
 
-// Middlewares
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Conectar a MongoDB
+// ===== Conectar a MongoDB =====
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB conectado correctamente'))
   .catch(err => console.error('Error MongoDB:', err));
 
-// === APIs ===
 
-// POST: Recibe datos del ESP32 con DHT22
+// =====================================================
+// POST → Recibe datos del ESP32 (temp, hum, timestamp)
+// =====================================================
 app.post('/api/telemetry', async (req, res) => {
   try {
     const { temp, hum, timestamp } = req.body;
 
-    // Validación básica
+    // Validación
     if (temp === undefined || hum === undefined || !timestamp) {
       return res.status(400).json({ error: 'Faltan campos: temp, hum o timestamp' });
     }
 
-    // Convertir el string de timestamp (formato: "2025-04-05 14:32:10") a Date
+    // Convertir el timestamp ISO 8601 enviado por el ESP32 ↓↓↓
+    // EJEMPLO: "2025-11-20T14:46:53-06:00"
     const fecha = new Date(timestamp);
+
     if (isNaN(fecha.getTime())) {
       return res.status(400).json({ error: 'Formato de timestamp inválido' });
     }
 
+    // Guardar en MongoDB
     const nuevoDato = new Telemetry({
       temp,
       hum,
@@ -41,19 +45,23 @@ app.post('/api/telemetry', async (req, res) => {
 
     await nuevoDato.save();
 
-    console.log(`Dato guardado → ${temp}°C | ${hum}% | ${timestamp}`);
-    res.status(201).json({ 
-      message: 'Dato DHT22 guardado correctamente',
-      id: nuevoDato._id 
+    console.log(`Guardado → ${temp}°C | ${hum}% | ${fecha.toISOString()}`);
+
+    return res.status(201).json({
+      message: "Dato guardado correctamente",
+      id: nuevoDato._id
     });
 
   } catch (err) {
     console.error('Error guardando dato:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
-// GET: Todos los registros (ordenados por fecha descendente)
+
+// =====================================================
+// GET → Devuelve todos los registros ordenados por fecha
+// =====================================================
 app.get('/api/telemetry', async (req, res) => {
   try {
     const datos = await Telemetry.find().sort({ timestamp: -1 });
@@ -64,31 +72,32 @@ app.get('/api/telemetry', async (req, res) => {
 });
 
 
-// GET: Contador total
+// =====================================================
+// GET → Total registros
+// =====================================================
 app.get('/api/telemetry/count', async (req, res) => {
   try {
-    const count = await Telemetry.countDocuments();
-    res.json({ total_registros: count });
+    const total = await Telemetry.countDocuments();
+    res.json({ total_registros: total });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Ruta raíz (opcional, para ver que funciona)
+
+// =====================================================
+// Página raíz (opcional)
+// =====================================================
 app.get('/', (req, res) => {
   res.send(`
     <h1>ESP32 + DHT22 Telemetría</h1>
-    <p><strong>Estado:</strong> API funcionando</p>
-    <p><strong>Endpoint POST:</strong> <code>/api/datos</code></p>
-    <p><strong>Total registros:</strong> <span id="count">cargando...</span></p>
-    <script>
-      fetch('/api/datos/count').then(r => r.json()).then(d => {
-        document.getElementById('count').textContent = d.total_registros;
-      });
-    </script>
+    <p>API activa correctamente</p>
+    <p>POST → /api/telemetry</p>
   `);
 });
 
+
+// PUERTO
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
