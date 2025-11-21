@@ -16,7 +16,6 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('Error MongoDB:', err));
 
 // === APIs ===
-
 // POST: Recibe datos del ESP32 con DHT22
 app.post('/api/telemetry', async (req, res) => {
   try {
@@ -27,7 +26,7 @@ app.post('/api/telemetry', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos: temp, hum o timestamp' });
     }
 
-    // Convertir el string de timestamp (formato: "2025-04-05 14:32:10") a Date
+    // Convertir el string de timestamp a objeto Date (acepta ISO o tu formato)
     const fecha = new Date(timestamp);
     if (isNaN(fecha.getTime())) {
       return res.status(400).json({ error: 'Formato de timestamp inválido' });
@@ -36,15 +35,34 @@ app.post('/api/telemetry', async (req, res) => {
     const nuevoDato = new Telemetry({
       temp,
       hum,
-      timestamp: fecha
+      timestamp: fecha  // Se guarda en UTC en la base de datos
     });
 
     await nuevoDato.save();
 
-    console.log(`Dato guardado → ${temp}°C | ${hum}% | ${timestamp}`);
+    // Formatear la fecha en hora local de México para la respuesta
+    const timestampLocal = fecha.toLocaleString('es-MX', {
+      timeZone: 'America/Mexico_City',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+
+    console.log(`Dato guardado → ${temp}°C | ${hum}% | ${timestampLocal} (CDMX)`);
+
     res.status(201).json({ 
       message: 'Dato DHT22 guardado correctamente',
-      id: nuevoDato._id 
+      id: nuevoDato._id,
+      dato: {
+        temp: nuevoDato.temp,
+        hum: nuevoDato.hum,
+        timestamp_utc: nuevoDato.timestamp,           // UTC (como está en MongoDB)
+        timestamp_local: timestampLocal               // Hora de México formateada
+      }
     });
 
   } catch (err) {
@@ -100,7 +118,7 @@ app.get('/', (req, res) => {
     </script>
   `);
 });
-
+ 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
