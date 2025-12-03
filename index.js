@@ -93,6 +93,11 @@ app.get('/api/telemetry', async (req, res) => {
   }
 });
 
+// NEW ENDPOINT: GET random interval between 4s and 60s (plain text response for easy parsing in ESP32)
+app.get('/api/update-interval', (req, res) => {
+  const interval = Math.floor(Math.random() * (60 - 4 + 1)) + 4;
+  res.send(interval.toString());
+});
 
 // GET: Contador total
 app.get('/api/telemetry/count', async (req, res) => {
@@ -118,9 +123,10 @@ app.get('/', (req, res) => {
     </script>
   `);
 });
- 
+// Iniciar el servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`POST → https://esp32-telemetry.onrender.com/api/telemetry`);
+  console.log(`POST → https://telemetry-gamma.vercel.app/api/telemetry`);
+  console.log(`UPDATE → https://telemetry-gamma.vercel.app/api/update-interval`);
 });
