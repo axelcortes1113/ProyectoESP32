@@ -93,41 +93,11 @@ app.get('/api/telemetry', async (req, res) => {
   }
 });
 
-// NEW ENDPOINT: Política de actualización (JSON)
-// Devuelve un intervalo aleatorio entre 4 y 60 segundos,
-// junto con metadatos para que el ESP32 sepa cuándo volver a consultar.
-// Respuesta ejemplo:
-// {
-//   "intervalSeconds": 12,
-//   "intervalMs": 12000,
-//   "validUntil": "2025-12-04T12:34:56.000Z",
-//   "nextCheckHint": "Consulta nuevamente al expirar validUntil",
-//   "message": "Usa este intervalo para envío de datos"
-// }
+// NEW ENDPOINT: GET random interval between 4s and 60s (plain text response for easy parsing in ESP32)
 app.get('/api/update-interval', (req, res) => {
-  // Se puede personalizar por dispositivo con query ?device=...
-  const device = (req.query.device || '').toString();
-
-  // Intervalo base aleatorio 4–60s
+  // Número entero aleatorio [4, 60]
   const intervalSeconds = Math.floor(Math.random() * (60 - 4 + 1)) + 4;
-
-  // Ejemplo de política sencilla: si el dispositivo incluye "lab",
-  // reducimos ligeramente el intervalo pero manteniendo límites.
-  const adjustedSeconds = device.includes('lab')
-    ? Math.max(4, Math.min(60, intervalSeconds - 2))
-    : intervalSeconds;
-
-  const intervalMs = adjustedSeconds * 1000;
-  const validUntil = new Date(Date.now() + intervalMs).toISOString();
-
-  res.json({
-    intervalSeconds: adjustedSeconds,
-    intervalMs,
-    validUntil,
-    nextCheckHint: 'Consulta nuevamente al expirar validUntil',
-    message: 'Usa este intervalo para envío de datos',
-    device: device || undefined
-  });
+  res.json({ intervalSeconds });
 });
 
 // GET: Contador total
@@ -146,6 +116,7 @@ app.get('/', (req, res) => {
     <h1>ESP32 + DHT22 Telemetría</h1>
     <p><strong>Estado:</strong> API funcionando</p>
     <p><strong>Endpoint POST:</strong> <code>/api/datos</code></p>
+    <p><strong>Endpoint GET para valor aleatorio entre 4s y 60s:</strong> <code>/api/update</code></p>
     <p><strong>Total registros:</strong> <span id="count">cargando...</span></p>
     <script>
       fetch('/api/datos/count').then(r => r.json()).then(d => {
