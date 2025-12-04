@@ -93,10 +93,41 @@ app.get('/api/telemetry', async (req, res) => {
   }
 });
 
-// NEW ENDPOINT: GET random interval between 4s and 60s (plain text response for easy parsing in ESP32)
+// NEW ENDPOINT: Política de actualización (JSON)
+// Devuelve un intervalo aleatorio entre 4 y 60 segundos,
+// junto con metadatos para que el ESP32 sepa cuándo volver a consultar.
+// Respuesta ejemplo:
+// {
+//   "intervalSeconds": 12,
+//   "intervalMs": 12000,
+//   "validUntil": "2025-12-04T12:34:56.000Z",
+//   "nextCheckHint": "Consulta nuevamente al expirar validUntil",
+//   "message": "Usa este intervalo para envío de datos"
+// }
 app.get('/api/update-interval', (req, res) => {
-  const interval = Math.floor(Math.random() * (60 - 4 + 1)) + 4;
-  res.send(interval.toString());
+  // Se puede personalizar por dispositivo con query ?device=...
+  const device = (req.query.device || '').toString();
+
+  // Intervalo base aleatorio 4–60s
+  const intervalSeconds = Math.floor(Math.random() * (60 - 4 + 1)) + 4;
+
+  // Ejemplo de política sencilla: si el dispositivo incluye "lab",
+  // reducimos ligeramente el intervalo pero manteniendo límites.
+  const adjustedSeconds = device.includes('lab')
+    ? Math.max(4, Math.min(60, intervalSeconds - 2))
+    : intervalSeconds;
+
+  const intervalMs = adjustedSeconds * 1000;
+  const validUntil = new Date(Date.now() + intervalMs).toISOString();
+
+  res.json({
+    intervalSeconds: adjustedSeconds,
+    intervalMs,
+    validUntil,
+    nextCheckHint: 'Consulta nuevamente al expirar validUntil',
+    message: 'Usa este intervalo para envío de datos',
+    device: device || undefined
+  });
 });
 
 // GET: Contador total
