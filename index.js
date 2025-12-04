@@ -19,16 +19,11 @@ if (!mongoUri) {
   console.error('MONGODB_URI no definido en .env');
 }
 
-// Opciones de conexión robustas
+// Opciones compatibles con el driver actual (sin keepAlive en parseOptions)
 const mongoOpts = {
-  serverSelectionTimeoutMS: 30000, // selección de servidor
-  socketTimeoutMS: 60000,          // actividad de socket
-  connectTimeoutMS: 30000,         // apertura de socket
-  maxPoolSize: 10,
-  keepAlive: true,
-  keepAliveInitialDelay: 300000,
-  retryWrites: true,
-  w: 'majority'
+  serverSelectionTimeoutMS: 30000,
+  socketTimeoutMS: 60000,
+  maxPoolSize: 10
 };
 
 mongoose.connect(mongoUri, mongoOpts)
@@ -152,11 +147,11 @@ app.get('/', (req, res) => {
   res.send(`
     <h1>ESP32 + DHT22 Telemetría</h1>
     <p><strong>Estado:</strong> API funcionando</p>
-    <p><strong>Endpoint POST:</strong> <code>/api/datos</code></p>
+    <p><strong>Endpoint POST:</strong> <code>/api/telemetry</code></p>
     <p><strong>Endpoint GET para valor aleatorio entre 4s y 60s:</strong> <code>/api/update</code></p>
     <p><strong>Total registros:</strong> <span id="count">cargando...</span></p>
     <script>
-      fetch('/api/datos/count').then(r => r.json()).then(d => {
+      fetch('/api/telemetry/count').then(r => r.json()).then(d => {
         document.getElementById('count').textContent = d.total_registros;
       });
     </script>
