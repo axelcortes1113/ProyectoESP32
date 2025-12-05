@@ -10,37 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Configuración Mongoose para producción (evitar timeouts y buffering)
-mongoose.set('strictQuery', true);
-mongoose.set('bufferCommands', false); // no acumular operaciones si no hay conexión
-
-const mongoUri = process.env.MONGODB_URI;
-if (!mongoUri) {
-  console.error('MONGODB_URI no definido en .env');
-}
-
-// Opciones compatibles con el driver actual (sin keepAlive en parseOptions)
-const mongoOpts = {
-  serverSelectionTimeoutMS: 30000,
-  socketTimeoutMS: 60000,
-  maxPoolSize: 10
-};
-
-mongoose.connect(mongoUri, mongoOpts)
+// Conectar a MongoDB
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB conectado correctamente'))
-  .catch(err => {
-    console.error('Error MongoDB (conexión):', err);
-  });
-
-mongoose.connection.on('error', (err) => {
-  console.error('Error MongoDB (runtime):', err);
-});
-
-// Healthcheck simple
-app.get('/health', (req, res) => {
-  const ready = mongoose.connection.readyState; // 1 = conectado
-  res.json({ mongoReadyState: ready });
-});
+  .catch(err => console.error('Error MongoDB:', err));
 
 // === APIs ===
 // POST: Recibe datos del ESP32 con DHT22
@@ -65,12 +38,7 @@ app.post('/api/telemetry', async (req, res) => {
       timestamp: fecha  // Se guarda en UTC en la base de datos
     });
 
-    // Si la conexión no está lista, devolver 503 para evitar buffering/timeout
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Base de datos no disponible (conectando...)' });
-    }
-
-    await nuevoDato.save({ wtimeoutMS: 20000 });
+    await nuevoDato.save();
 
     // Formatear la fecha en hora local de México para la respuesta
     const timestampLocal = fecha.toLocaleString('es-MX', {
